@@ -1,15 +1,20 @@
 import {useCurrentFrame, AbsoluteFill, Img, Audio, staticFile} from "remotion";
-import {QUAD_STRINGS_RED, QUAD_STRINGS_BLUE, FRONT, parseQuad} from "./data";
+import {QUAD_STRINGS_RED, QUAD_STRINGS_BLUE, FRONT, parseQuad, Quad} from "./data";
 
 export const WIDTH = 720;
 export const HEIGHT = 720;
 export const DURATION = 219;
 export const FPS = 30;
 
-const pointsOf = (quad: number[]): string =>
+// Pre-parse the per-frame quads once at module load (lossless — same values
+// the strings encode). Frame-by-frame geometry is preserved exactly.
+const RED_FRAMES: Quad[] = QUAD_STRINGS_RED.map(parseQuad);
+const BLUE_FRAMES: Quad[] = QUAD_STRINGS_BLUE.map(parseQuad);
+
+const pointsOf = (quad: Quad): string =>
   `${quad[0]},${quad[1]} ${quad[2]},${quad[3]} ${quad[4]},${quad[5]} ${quad[6]},${quad[7]}`;
 
-const Shape: React.FC<{quad: number[]; fill: string}> = ({quad, fill}) => (
+const Shape: React.FC<{quad: Quad; fill: string}> = ({quad, fill}) => (
   <svg
     width={WIDTH}
     height={HEIGHT}
@@ -25,8 +30,8 @@ export const Bounce: React.FC = () => {
   const frame = useCurrentFrame();
   const f = Math.min(Math.max(frame, 0), DURATION - 1);
 
-  const redQuad = parseQuad(QUAD_STRINGS_RED[f]);
-  const blueQuad = parseQuad(QUAD_STRINGS_BLUE[f]);
+  const redQuad = RED_FRAMES[f];
+  const blueQuad = BLUE_FRAMES[f];
   const redOnTop = FRONT[f] === 0;
 
   const redShape = <Shape quad={redQuad} fill="#fe0000" />;
@@ -34,9 +39,12 @@ export const Bounce: React.FC = () => {
 
   return (
     <AbsoluteFill style={{backgroundColor: "#ffffff"}}>
-      {/* background plate: white canvas, borders, green band and caption */}
+      {/* Static background plate: white canvas, borders, green band and caption.
+          Derived as the per-pixel median of the original 219 video plates, which
+          removes compression noise / inpainting smudges while keeping every
+          static element. The bouncing quads below carry all per-frame motion. */}
       <Img
-        src={staticFile(`bg/${String(f).padStart(3, "0")}.png`)}
+        src={staticFile("bg-static.png")}
         style={{position: "absolute", left: 0, top: 0, width: WIDTH, height: HEIGHT}}
       />
 
