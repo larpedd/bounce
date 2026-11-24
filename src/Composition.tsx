@@ -35,7 +35,7 @@ const atFrame = (keyframes: Keyframe[], frame: number): Homography => {
   return lerp(last, last, 0);
 };
 
-const Shape: React.FC<{homography: Homography; fill: string}> = ({homography, fill}) => {
+const Shape: React.FC<{homography: Homography; src: string}> = ({homography, src}) => {
   const [h11, h12, h13, h21, h22, h23, h31, h32] = homography;
   return (
     <div
@@ -45,11 +45,12 @@ const Shape: React.FC<{homography: Homography; fill: string}> = ({homography, fi
         top: 0,
         width: SIZE,
         height: SIZE,
-        backgroundColor: fill,
         transformOrigin: "0 0",
         transform: `matrix3d(${h11 / SIZE},${h21 / SIZE},0,${h31 / SIZE},${h12 / SIZE},${h22 / SIZE},0,${h32 / SIZE},0,0,1,0,${h13},${h23},0,1)`,
       }}
-    />
+    >
+      <Img src={src} style={{width: SIZE, height: SIZE, objectFit: "fill"}} />
+    </div>
   );
 };
 
@@ -61,8 +62,8 @@ export const Bounce: React.FC = () => {
   const blueHomography = atFrame(BLUE_KEYFRAMES, f);
   const redOnTop = FRONT[f] === 0;
 
-  const redShape = <Shape homography={redHomography} fill="#fe0000" />;
-  const blueShape = <Shape homography={blueHomography} fill="#0000fe" />;
+  const redShape = <Shape homography={redHomography} src={staticFile("red.png")} />;
+  const blueShape = <Shape homography={blueHomography} src={staticFile("blue.png")} />;
 
   return (
     <AbsoluteFill style={{backgroundColor: "#ffffff"}}>
