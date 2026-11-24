@@ -1,4 +1,4 @@
-import {AbsoluteFill, Audio, Img, staticFile, useCurrentFrame} from "remotion";
+import {AbsoluteFill, Html5Audio, Img, staticFile, useCurrentFrame} from "remotion";
 import {BLUE_KEYFRAMES, FRONT, Keyframe, RED_KEYFRAMES} from "./data";
 
 export const WIDTH = 720;
@@ -6,44 +6,63 @@ export const HEIGHT = 720;
 export const DURATION = 219;
 export const FPS = 30;
 
-const atFrame = (keyframes: Keyframe[], frame: number): [number, number, number, number] => {
-  if (frame <= keyframes[0][0]) return [keyframes[0][1], keyframes[0][2], keyframes[0][3], keyframes[0][4]];
+const SIZE = 100;
+
+type Homography = [number, number, number, number, number, number, number, number];
+
+const atFrame = (keyframes: Keyframe[], frame: number): Homography => {
+  const first = keyframes[0];
   const last = keyframes[keyframes.length - 1];
-  if (frame >= last[0]) return [last[1], last[2], last[3], last[4]];
+  const lerp = (a: Keyframe, b: Keyframe, t: number): Homography => [
+    a[1] + (b[1] - a[1]) * t,
+    a[2] + (b[2] - a[2]) * t,
+    a[3] + (b[3] - a[3]) * t,
+    a[4] + (b[4] - a[4]) * t,
+    a[5] + (b[5] - a[5]) * t,
+    a[6] + (b[6] - a[6]) * t,
+    a[7] + (b[7] - a[7]) * t,
+    a[8] + (b[8] - a[8]) * t,
+  ];
+
+  if (frame <= first[0]) return lerp(first, first, 0);
+  if (frame >= last[0]) return lerp(last, last, 0);
+
   for (let i = 1; i < keyframes.length; i++) {
-    const [f1, x1, y1, w1, h1] = keyframes[i - 1];
-    const [f2, x2, y2, w2, h2] = keyframes[i];
-    if (frame <= f2) {
-      const t = (frame - f1) / (f2 - f1);
-      return [x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, w1 + (w2 - w1) * t, h1 + (h2 - h1) * t];
-    }
+    const a = keyframes[i - 1];
+    const b = keyframes[i];
+    if (frame <= b[0]) return lerp(a, b, (frame - a[0]) / (b[0] - a[0]));
   }
-  return [last[1], last[2], last[3], last[4]];
+  return lerp(last, last, 0);
 };
 
-const Shape: React.FC<{rect: [number, number, number, number]; fill: string}> = ({rect, fill}) => (
-  <div
-    style={{
-      position: "absolute",
-      left: rect[0],
-      top: rect[1],
-      width: rect[2],
-      height: rect[3],
-      backgroundColor: fill,
-    }}
-  />
-);
+const Shape: React.FC<{homography: Homography; fill: string}> = ({homography, fill}) => {
+  const [h11, h12, h13, h21, h22, h23, h31, h32] = homography;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: SIZE,
+        height: SIZE,
+        backgroundColor: fill,
+        transformOrigin: "0 0",
+        transform: `matrix3d(${h11 / SIZE},${h21 / SIZE},0,${h31 / SIZE},${h12 / SIZE},${h22 / SIZE},0,${h32 / SIZE},0,0,1,0,${h13},${h23},0,1)`,
+      }}
+    />
+  );
+};
 
 export const Bounce: React.FC = () => {
   const frame = useCurrentFrame();
   const f = Math.min(Math.max(frame, 0), DURATION - 1);
 
-  const redRect = atFrame(RED_KEYFRAMES, f);
-  const blueRect = atFrame(BLUE_KEYFRAMES, f);
+  const redHomography = atFrame(RED_KEYFRAMES, f);
+  const blueHomography = atFrame(BLUE_KEYFRAMES, f);
   const redOnTop = FRONT[f] === 0;
 
-  const redShape = <Shape rect={redRect} fill="#fe0000" />;
-  const blueShape = <Shape rect={blueRect} fill="#0000fe" />;
+  const redShape = <Shape homography={redHomography} fill="#fe0000" />;
+  const blueShape = <Shape homography={blueHomography} fill="#0000fe" />;
 
   return (
     <AbsoluteFill style={{backgroundColor: "#ffffff"}}>
@@ -69,7 +88,7 @@ export const Bounce: React.FC = () => {
       )}
 
       {/* original audio track from bounce_reference.mp4 */}
-      <Audio src={staticFile("reference.mp4")} />
+      <Html5Audio src={staticFile("reference.mp4")} />
     </AbsoluteFill>
   );
 };
