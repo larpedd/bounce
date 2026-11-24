@@ -1,15 +1,13 @@
 import {useCurrentFrame, AbsoluteFill, Img, Audio, staticFile} from "remotion";
-import {QUAD_STRINGS_RED, QUAD_STRINGS_BLUE, FRONT, parseQuad, Quad} from "./data";
+import {RED_QUADS, BLUE_QUADS, FRONT, Quad} from "./data";
 
 export const WIDTH = 720;
 export const HEIGHT = 720;
 export const DURATION = 219;
 export const FPS = 30;
 
-// Pre-parse the per-frame quads once at module load (lossless — same values
-// the strings encode). Frame-by-frame geometry is preserved exactly.
-const RED_FRAMES: Quad[] = QUAD_STRINGS_RED.map(parseQuad);
-const BLUE_FRAMES: Quad[] = QUAD_STRINGS_BLUE.map(parseQuad);
+const RED_FRAMES = RED_QUADS;
+const BLUE_FRAMES = BLUE_QUADS;
 
 const pointsOf = (quad: Quad): string =>
   `${quad[0]},${quad[1]} ${quad[2]},${quad[3]} ${quad[4]},${quad[5]} ${quad[6]},${quad[7]}`;
